@@ -22,6 +22,8 @@ contract PriceOracle is IPriceOracle {
         uint256 timestamp
     );
 
+    event DecimalsSet(address indexed asset, uint8 decimals);
+
     /// -----------------------------------------------------------------------
     /// Storage
     /// -----------------------------------------------------------------------
@@ -34,6 +36,9 @@ contract PriceOracle is IPriceOracle {
 
     /// @notice asset => last update timestamp
     mapping(address => uint256) private lastUpdated;
+
+    /// @notice asset => decimals for the price
+    mapping(address => uint8) private assetDecimals;
 
     /// @notice maximum allowed deviation in BPS (e.g. 500 = 5%)
     uint256 public maxDeviation;
@@ -70,23 +75,21 @@ contract PriceOracle is IPriceOracle {
         return prices[asset];
     }
 
-    function getLastUpdated(address asset)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getLastUpdated(
+        address asset
+    ) external view override returns (uint256) {
         return lastUpdated[asset];
+    }
+
+    function getDecimals(address asset) external view override returns (uint8) {
+        return assetDecimals[asset];
     }
 
     /// -----------------------------------------------------------------------
     /// Admin Functions
     /// -----------------------------------------------------------------------
 
-    function updatePrice(address asset, uint256 newPrice)
-        external
-        onlyAdmin
-    {
+    function updatePrice(address asset, uint256 newPrice) external onlyAdmin {
         if (newPrice == 0) revert InvalidPrice();
 
         uint256 oldPrice = prices[asset];
@@ -116,5 +119,11 @@ contract PriceOracle is IPriceOracle {
         lastUpdated[asset] = block.timestamp;
 
         emit PriceUpdated(asset, oldPrice, newPrice, block.timestamp);
+    }
+
+    /// @notice Set decimals for an asset (e.g., price scaled by 1e8 => decimals = 8)
+    function setDecimals(address asset, uint8 decimals_) external onlyAdmin {
+        assetDecimals[asset] = decimals_;
+        emit DecimalsSet(asset, decimals_);
     }
 }
